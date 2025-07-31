@@ -2,15 +2,14 @@
 
 import React from "react";
 import { Event } from "@/types";
-import { CalendarIcon, MapPinIcon, UserGroupIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon, UserGroupIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface EventCardProps {
   event: Event;
-  onUpdate: () => void;
   onClick?: () => void;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, onUpdate, onClick }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("es-ES", {
       hour: "2-digit",

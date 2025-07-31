@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Task, TaskCategory, TaskPriority } from "@/types";
 import { localStorageService } from "@/services/localStorage";
@@ -59,23 +59,29 @@ const CreateTaskPage: React.FC = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  // Función para redondear minutos a intervalos de 15
-  const roundToQuarterHour = (dateTimeString: string): string => {
-    if (!dateTimeString) return dateTimeString;
+  const loadFrequentTasks = useCallback(() => {
+    const tasks = frequentTasksService.getMostUsedTasks(12);
+    setFrequentTasks(tasks);
+  }, []);
 
-    const date = new Date(dateTimeString);
-    const minutes = date.getMinutes();
-    const roundedMinutes = Math.round(minutes / 15) * 15;
+  const loadCategories = useCallback(() => {
+    const cats = frequentTasksService.getAllCategories();
+    setCategories(cats);
+  }, []);
 
-    if (roundedMinutes === 60) {
-      date.setHours(date.getHours() + 1);
-      date.setMinutes(0);
+  const filterFrequentTasks = useCallback(() => {
+    let filtered: FrequentTask[] = [];
+
+    if (searchQuery) {
+      filtered = frequentTasksService.searchTasks(searchQuery);
+    } else if (selectedCategory !== "all") {
+      filtered = frequentTasksService.getTasksByCategory(selectedCategory);
     } else {
-      date.setMinutes(roundedMinutes);
+      filtered = frequentTasksService.getMostUsedTasks(12);
     }
 
-    return formatDateTimeLocal(date);
-  };
+    setFrequentTasks(filtered);
+  }, [searchQuery, selectedCategory]);
 
   useEffect(() => {
     loadFrequentTasks();
@@ -100,35 +106,11 @@ const CreateTaskPage: React.FC = () => {
         }));
       }
     }
-  }, []);
+  }, [loadFrequentTasks, loadCategories]);
 
   useEffect(() => {
     filterFrequentTasks();
-  }, [searchQuery, selectedCategory]);
-
-  const loadFrequentTasks = () => {
-    const tasks = frequentTasksService.getMostUsedTasks(12);
-    setFrequentTasks(tasks);
-  };
-
-  const loadCategories = () => {
-    const cats = frequentTasksService.getAllCategories();
-    setCategories(cats);
-  };
-
-  const filterFrequentTasks = () => {
-    let filtered: FrequentTask[] = [];
-
-    if (searchQuery) {
-      filtered = frequentTasksService.searchTasks(searchQuery);
-    } else if (selectedCategory !== "all") {
-      filtered = frequentTasksService.getTasksByCategory(selectedCategory);
-    } else {
-      filtered = frequentTasksService.getMostUsedTasks(12);
-    }
-
-    setFrequentTasks(filtered);
-  };
+  }, [filterFrequentTasks]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -140,7 +122,7 @@ const CreateTaskPage: React.FC = () => {
     }));
   };
 
-  const handleFrequentTaskSelect = (task: FrequentTask) => {
+  const handleFrequentTaskSelect = useCallback((task: FrequentTask) => {
     setFormData((prev) => ({
       ...prev,
       title: task.title,
@@ -148,13 +130,16 @@ const CreateTaskPage: React.FC = () => {
       category: task.category as TaskCategory,
       priority: task.priority as TaskPriority,
     }));
-  };
+  }, []);
 
-  const handleFrequentTaskDelete = (taskId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    frequentTasksService.deleteFrequentTask(taskId);
-    loadFrequentTasks();
-  };
+  const handleFrequentTaskDelete = useCallback(
+    (taskId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      frequentTasksService.deleteFrequentTask(taskId);
+      loadFrequentTasks();
+    },
+    [loadFrequentTasks]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +159,7 @@ const CreateTaskPage: React.FC = () => {
         });
       } else {
         // Crear tarea programada con fechas opcionales
-        const taskData: any = {
+        const taskData: Omit<Task, "id" | "createdAt" | "updatedAt"> = {
           title: formData.title,
           description: formData.description,
           category: formData.category,

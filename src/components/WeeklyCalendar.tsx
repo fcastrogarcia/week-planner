@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Task, Event, TaskCategory, TaskPriority } from "@/types";
 import { localStorageService } from "@/services/localStorage";
@@ -31,7 +31,6 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForDate, setCreateForDate] = useState<Date | null>(null);
-  const [createType, setCreateType] = useState<"task" | "event" | null>(null);
 
   const handleEditTask = (task: Task) => {
     if (onEditTask) {
@@ -80,7 +79,6 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     setShowCreateModal(true);
   };
   const handleCreateTypeSelect = (type: "task" | "event") => {
-    setCreateType(type);
     setShowCreateModal(false);
 
     if (createForDate) {
@@ -100,25 +98,27 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   const handleCloseCreateModal = () => {
     setShowCreateModal(false);
     setCreateForDate(null);
-    setCreateType(null);
   };
 
-  const getStartOfWeek = (date: Date) => {
+  const getStartOfWeek = useCallback((date: Date) => {
     const d = new Date(date);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const result = new Date(d.setDate(diff));
     result.setHours(0, 0, 0, 0);
     return result;
-  };
+  }, []);
 
-  const getEndOfWeek = (date: Date) => {
-    const startOfWeek = getStartOfWeek(date);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-    return endOfWeek;
-  };
+  const getEndOfWeek = useCallback(
+    (date: Date) => {
+      const startOfWeek = getStartOfWeek(date);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      return endOfWeek;
+    },
+    [getStartOfWeek]
+  );
 
   const getWeekDays = (startDate: Date) => {
     const days = [];
@@ -130,7 +130,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     return days;
   };
 
-  const loadWeekData = async () => {
+  const loadWeekData = useCallback(async () => {
     setLoading(true);
     try {
       const startOfWeek = getStartOfWeek(currentWeek);
@@ -146,18 +146,17 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentWeek, getStartOfWeek, getEndOfWeek]);
 
   useEffect(() => {
     loadWeekData();
-  }, [currentWeek]);
+  }, [loadWeekData]);
 
-  // Efecto para refrescar los datos cuando se recibe refreshTrigger
   useEffect(() => {
     if (refreshTrigger !== undefined) {
       loadWeekData();
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, loadWeekData]);
 
   const navigateWeek = (direction: "prev" | "next") => {
     const newDate = new Date(currentWeek.getTime());
@@ -297,12 +296,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
               {/* Eventos y tareas del día */}
               <div className="space-y-1">
                 {dayEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onUpdate={loadWeekData}
-                    onClick={() => handleEditEvent(event)}
-                  />
+                  <EventCard key={event.id} event={event} onClick={() => handleEditEvent(event)} />
                 ))}
 
                 {dayTasks.map((task) => (

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Event } from "@/types";
 import { localStorageService } from "@/services/localStorage";
 import {
   ChevronLeftIcon,

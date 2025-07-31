@@ -111,13 +111,6 @@ const BacklogTaskCard: React.FC<BacklogTaskCardProps> = ({
     }
   };
 
-  const handleDelete = () => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta tarea?")) {
-      localStorageService.deleteTask(task.id);
-      onUpdate();
-    }
-  };
-
   const dueDateInfo = getDueDateInfo(task);
 
   return (

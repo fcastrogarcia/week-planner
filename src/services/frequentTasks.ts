@@ -69,11 +69,13 @@ class FrequentTasksService {
       }
 
       const parsed = JSON.parse(stored);
-      return parsed.map((task: any) => ({
-        ...task,
-        lastUsed: new Date(task.lastUsed),
-        createdAt: new Date(task.createdAt),
-      }));
+      return parsed.map(
+        (task: Partial<FrequentTask> & { lastUsed: string; createdAt: string }) => ({
+          ...task,
+          lastUsed: new Date(task.lastUsed),
+          createdAt: new Date(task.createdAt),
+        })
+      );
     } catch (error) {
       console.error("Error reading frequent tasks:", error);
       return this.initializeDefaultTasks();

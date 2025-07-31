@@ -8,7 +8,7 @@ import BacklogList from "@/components/BacklogList";
 import DueSoonAlerts from "@/components/DueSoonAlerts";
 import { Task } from "@/types";
 import { localStorageService } from "@/services/localStorage";
-import { CalendarDaysIcon, PlusIcon, CheckIcon, CalendarIcon } from "@heroicons/react/24/outline";
+import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 
 export default function Home() {
   const router = useRouter();
@@ -64,10 +64,6 @@ export default function Home() {
   }, []);
 
   const handleTaskCreated = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
-
-  const handleEventCreated = () => {
     setRefreshKey((prev) => prev + 1);
   };
 

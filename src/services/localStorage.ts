@@ -10,12 +10,22 @@ class LocalStorageService {
       if (!tasks) return this.getInitialTasks();
 
       const parsedTasks = JSON.parse(tasks);
-      return parsedTasks.map((task: any) => ({
-        ...task,
-        startTime: task.startTime ? new Date(task.startTime) : undefined,
-        createdAt: new Date(task.createdAt),
-        updatedAt: new Date(task.updatedAt),
-      }));
+      return parsedTasks.map(
+        (
+          task: Partial<Task> & {
+            startTime?: string;
+            dueDate?: string;
+            createdAt?: string;
+            updatedAt?: string;
+          }
+        ) => ({
+          ...task,
+          startTime: task.startTime ? new Date(task.startTime) : undefined,
+          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+          createdAt: new Date(task.createdAt || new Date()),
+          updatedAt: new Date(task.updatedAt || new Date()),
+        })
+      );
     } catch (error) {
       console.error("Error reading tasks from localStorage:", error);
       return this.getInitialTasks();
@@ -119,13 +129,22 @@ class LocalStorageService {
       if (!events) return this.getInitialEvents();
 
       const parsedEvents = JSON.parse(events);
-      return parsedEvents.map((event: any) => ({
-        ...event,
-        startTime: new Date(event.startTime),
-        endTime: new Date(event.endTime),
-        createdAt: new Date(event.createdAt),
-        updatedAt: new Date(event.updatedAt),
-      }));
+      return parsedEvents.map(
+        (
+          event: Partial<Event> & {
+            startTime: string;
+            endTime: string;
+            createdAt?: string;
+            updatedAt?: string;
+          }
+        ) => ({
+          ...event,
+          startTime: new Date(event.startTime),
+          endTime: new Date(event.endTime),
+          createdAt: new Date(event.createdAt || new Date()),
+          updatedAt: new Date(event.updatedAt || new Date()),
+        })
+      );
     } catch (error) {
       console.error("Error reading events from localStorage:", error);
       return this.getInitialEvents();
