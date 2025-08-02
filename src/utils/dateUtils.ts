@@ -1,4 +1,74 @@
+/**
+ * Utilidades para manejo de fechas y horas en la aplicación
+ */
+
 import { Task } from "@/types";
+
+/**
+ * Redondea los minutos de una fecha a cuartos de hora (0, 15, 30, 45)
+ */
+export const roundToQuarterHour = (date: Date): Date => {
+  const newDate = new Date(date);
+  const minutes = newDate.getMinutes();
+  const roundedMinutes = Math.round(minutes / 15) * 15;
+  newDate.setMinutes(roundedMinutes, 0, 0); // También resetear segundos y milisegundos
+  return newDate;
+};
+
+/**
+ * Formatea una fecha a string en formato datetime-local (YYYY-MM-DDTHH:MM)
+ * manteniendo la zona horaria local
+ */
+export const formatDateTimeLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+/**
+ * Parsea un string datetime-local y devuelve una fecha redondeada a cuarto de hora
+ */
+export const parseDateTimeLocalRounded = (dateTimeString: string): Date => {
+  const date = new Date(dateTimeString);
+  return roundToQuarterHour(date);
+};
+
+/**
+ * Obtiene la fecha mínima (ahora) redondeada a cuarto de hora
+ */
+export const getMinDateTimeRounded = (): string => {
+  const now = new Date();
+  const rounded = roundToQuarterHour(now);
+  return formatDateTimeLocal(rounded);
+};
+
+/**
+ * Calcula una fecha de fin automáticamente (30 minutos después) redondeada
+ */
+export const calculateEndTime = (startTimeString: string, durationMinutes: number = 30): string => {
+  if (!startTimeString) return "";
+
+  const startDate = new Date(startTimeString);
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+  const roundedEndDate = roundToQuarterHour(endDate);
+  return formatDateTimeLocal(roundedEndDate);
+};
+
+/**
+ * Maneja el cambio de input datetime-local forzando redondeo a cuartos de hora
+ */
+export const handleDateTimeChange = (value: string): string => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  const rounded = roundToQuarterHour(date);
+  return formatDateTimeLocal(rounded);
+};
+
+// ===== UTILIDADES PARA FECHAS DE VENCIMIENTO =====
 
 export enum DueDateStatus {
   OVERDUE = "overdue",

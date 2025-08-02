@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Event } from "@/types";
-import { MapPinIcon, UserGroupIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface EventCardProps {
   event: Event;
@@ -54,12 +54,6 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
           <div className="flex items-center gap-0.5">
             <MapPinIcon className="h-3 w-3" />
             <span className="truncate max-w-[60px]">{event.location}</span>
-          </div>
-        )}
-        {event.attendees && event.attendees.length > 0 && (
-          <div className="flex items-center gap-0.5">
-            <UserGroupIcon className="h-3 w-3" />
-            <span>{event.attendees.length}</span>
           </div>
         )}
       </div>

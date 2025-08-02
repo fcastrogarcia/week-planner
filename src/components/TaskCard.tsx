@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Task, TaskPriority } from "@/types";
 import { localStorageService } from "@/services/localStorage";
 import { ClockIcon } from "@heroicons/react/24/outline";
-import { getDueDateInfo, DueDateStatus } from "@/utils/dueDateUtils";
+import { getDueDateInfo, DueDateStatus } from "@/utils/dateUtils";
 
 interface TaskCardProps {
   task: Task;

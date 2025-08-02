@@ -3,6 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { Event } from "@/types";
 import { localStorageService } from "@/services/localStorage";
+import {
+  roundToQuarterHour,
+  formatDateTimeLocal,
+  calculateEndTime,
+  handleDateTimeChange,
+} from "@/utils/dateUtils";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface EditEventModalProps {
@@ -18,7 +24,6 @@ interface EventFormData {
   startTime: string;
   endTime: string;
   location: string;
-  attendees: string;
 }
 
 const EditEventModal: React.FC<EditEventModalProps> = ({
@@ -34,37 +39,16 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     startTime: "",
     endTime: "",
     location: "",
-    attendees: "",
   });
-
-  // Función para formatear fecha manteniendo zona horaria local
-  const formatDateTimeLocal = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  // Función para calcular endTime automáticamente (30 minutos después)
-  const calculateEndTime = (startTimeString: string): string => {
-    if (!startTimeString) return "";
-
-    const startDate = new Date(startTimeString);
-    const endDate = new Date(startDate.getTime() + 30 * 60 * 1000); // 30 minutos después
-    return formatDateTimeLocal(endDate);
-  };
 
   useEffect(() => {
     if (isOpen && event) {
       setFormData({
         title: event.title,
         description: event.description || "",
-        startTime: formatDateTimeLocal(new Date(event.startTime)),
-        endTime: formatDateTimeLocal(new Date(event.endTime)),
+        startTime: formatDateTimeLocal(roundToQuarterHour(new Date(event.startTime))),
+        endTime: formatDateTimeLocal(roundToQuarterHour(new Date(event.endTime))),
         location: event.location || "",
-        attendees: event.attendees ? event.attendees.join(", ") : "",
       });
     }
   }, [event, isOpen]);
@@ -73,12 +57,19 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     const { name, value } = e.target;
 
     if (name === "startTime") {
-      const autoEndTime = calculateEndTime(value);
+      const roundedStartTime = value ? handleDateTimeChange(value) : value;
+      const autoEndTime = calculateEndTime(roundedStartTime);
 
       setFormData((prev) => ({
         ...prev,
-        startTime: value,
+        startTime: roundedStartTime,
         endTime: autoEndTime,
+      }));
+    } else if (name === "endTime") {
+      const roundedEndTime = value ? handleDateTimeChange(value) : value;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: roundedEndTime,
       }));
     } else {
       setFormData((prev) => ({
@@ -94,12 +85,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const attendeesArray = formData.attendees
-        .split(",")
-        .map((email) => email.trim())
-        .filter((email) => email.length > 0);
-
-      // Crear fechas preservando la zona horaria local
       const parseLocalDateTime = (dateTimeString: string): Date => {
         const [datePart, timePart] = dateTimeString.split("T");
         const [year, month, day] = datePart.split("-").map(Number);
@@ -113,7 +98,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         startTime: parseLocalDateTime(formData.startTime),
         endTime: parseLocalDateTime(formData.endTime),
         location: formData.location.trim(),
-        attendees: attendeesArray.length > 0 ? attendeesArray : undefined,
       };
 
       localStorageService.updateEvent(event.id, updateData);
@@ -223,18 +207,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 onChange={handleInputChange}
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ubicación del evento"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Asistentes</label>
-              <input
-                type="text"
-                name="attendees"
-                value={formData.attendees}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Emails separados por comas"
               />
             </div>
 

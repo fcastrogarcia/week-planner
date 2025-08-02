@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Task } from "@/types";
-import { getDueDateInfo, DueDateStatus } from "@/utils/dueDateUtils";
+import { getDueDateInfo, DueDateStatus } from "@/utils/dateUtils";
 import { ExclamationTriangleIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface DueSoonAlertsProps {

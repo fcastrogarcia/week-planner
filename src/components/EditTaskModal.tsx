@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Task, TaskCategory, TaskPriority } from "@/types";
 import { localStorageService } from "@/services/localStorage";
 import { frequentTasksService } from "@/services/frequentTasks";
+import { roundToQuarterHour, formatDateTimeLocal, handleDateTimeChange } from "@/utils/dateUtils";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface EditTaskModalProps {
@@ -39,21 +40,14 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
     isFavorite: false,
   });
 
-  const formatDateTimeLocal = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
   useEffect(() => {
     if (task && isOpen) {
       setFormData({
         title: task.title,
         description: task.description || "",
-        startTime: task.startTime ? formatDateTimeLocal(new Date(task.startTime)) : "",
+        startTime: task.startTime
+          ? formatDateTimeLocal(roundToQuarterHour(new Date(task.startTime)))
+          : "",
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
         category: task.category,
         priority: task.priority,
@@ -68,10 +62,20 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+
+    // Forzar redondeo para campos de fecha/hora
+    if (name === "startTime" && value) {
+      const roundedValue = handleDateTimeChange(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: roundedValue,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      }));
+    }
   };
 
   const handleFavoriteToggle = (e: React.ChangeEvent<HTMLInputElement>) => {

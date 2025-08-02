@@ -21,7 +21,6 @@ export interface Event {
   startTime: Date;
   endTime: Date;
   location?: string;
-  attendees?: string[];
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -77,7 +76,6 @@ export interface CreateEventRequest {
   startTime: string;
   endTime: string;
   location?: string;
-  attendees?: string[];
   userId: string;
 }
 
@@ -87,5 +85,4 @@ export interface UpdateEventRequest {
   startTime?: string;
   endTime?: string;
   location?: string;
-  attendees?: string[];
 }

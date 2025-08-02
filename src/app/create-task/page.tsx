@@ -6,6 +6,12 @@ import { Task, TaskCategory, TaskPriority } from "@/types";
 import { localStorageService } from "@/services/localStorage";
 import { frequentTasksService, FrequentTask } from "@/services/frequentTasks";
 import {
+  roundToQuarterHour,
+  formatDateTimeLocal,
+  getMinDateTimeRounded,
+  handleDateTimeChange,
+} from "@/utils/dateUtils";
+import {
   ClockIcon,
   StarIcon,
   ChevronLeftIcon,
@@ -33,9 +39,8 @@ const CreateTaskPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
 
-  // Fecha mínima (hoy) para los inputs de fecha
-  const today = new Date();
-  const minDateTime = today.toISOString().slice(0, 16); // Formato YYYY-MM-DDTHH:MM
+  // Fecha mínima (hoy) para los inputs de fecha, redondeada a cuarto de hora
+  const minDateTime = getMinDateTimeRounded();
 
   const [formData, setFormData] = useState<TaskFormData>({
     title: "",
@@ -48,16 +53,6 @@ const CreateTaskPage: React.FC = () => {
     isBacklog: false,
     isFavorite: false,
   });
-
-  // Función para formatear fecha manteniendo zona horaria local
-  const formatDateTimeLocal = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
 
   const loadFrequentTasks = useCallback(() => {
     const tasks = frequentTasksService.getMostUsedTasks(12);
@@ -97,12 +92,13 @@ const CreateTaskPage: React.FC = () => {
       const selectedDate = new Date(year, month - 1, day); // month es 0-indexado
 
       if (!isNaN(selectedDate.getTime())) {
-        // Configurar fecha de inicio a las 9:00 AM
+        // Configurar fecha de inicio a las 9:00 AM y redondear a cuarto de hora
         const startTime = new Date(year, month - 1, day, 9, 0);
+        const roundedStartTime = roundToQuarterHour(startTime);
 
         setFormData((prev) => ({
           ...prev,
-          startTime: formatDateTimeLocal(startTime),
+          startTime: formatDateTimeLocal(roundedStartTime),
         }));
       }
     }
@@ -116,10 +112,20 @@ const CreateTaskPage: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+
+    // Forzar redondeo para campos de fecha/horaK
+    if (name === "startTime" && value) {
+      const roundedValue = handleDateTimeChange(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: roundedValue,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      }));
+    }
   };
 
   const handleFrequentTaskSelect = useCallback((task: FrequentTask) => {
@@ -205,10 +211,7 @@ const CreateTaskPage: React.FC = () => {
         }
       }
 
-      // Obtener la fecha de la tarea para navegar al calendario correcto
-      const redirectUrl = "/?refresh=true";
-
-      router.push(redirectUrl);
+      router.push("/");
     } catch (error) {
       console.error("Error creating task:", error);
     } finally {
@@ -413,7 +416,7 @@ const CreateTaskPage: React.FC = () => {
                   name="dueDate"
                   value={formData.dueDate}
                   onChange={handleInputChange}
-                  min={today.toISOString().split("T")[0]}
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">
