@@ -258,11 +258,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
         },
       }));
     }
-  }, [getStartOfWeek, getEndOfWeek]);
-
-  useEffect(() => {
-    loadWeekData();
-  }, [state.data.currentWeek]);
+  }, [state.data.currentWeek, getStartOfWeek, getEndOfWeek]);
 
   useEffect(() => {
     loadWeekData();
