@@ -71,7 +71,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onEdit }) => {
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-1">
             <ClockIcon className="h-3 w-3 text-gray-600" />
-            <span className="font-medium text-gray-700 text-xs">{formatTime(task.startTime)}</span>
+            <span className="font-normal text-gray-700 text-xs">{formatTime(task.startTime)}</span>
           </div>
           <span
             className={`w-2 h-2 rounded-full ${getPriorityChipColor(task.priority)}`}
@@ -105,7 +105,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onEdit }) => {
 
         <div className="flex-1 min-w-0">
           <h4
-            className={`font-medium text-xs leading-tight truncate ${
+            className={`font-light text-xs leading-tight truncate ${
               task.completed ? "line-through text-gray-500" : "text-gray-900"
             }`}
           >

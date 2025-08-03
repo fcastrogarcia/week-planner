@@ -15,54 +15,121 @@ interface WeeklyCalendarProps {
   refreshTrigger?: number;
 }
 
+interface WeeklyCalendarState {
+  data: {
+    tasks: Task[];
+    events: Event[];
+    currentWeek: Date;
+    loading: boolean;
+  };
+  modals: {
+    taskEdit: {
+      isOpen: boolean;
+      editingTask: Task | null;
+    };
+    eventEdit: {
+      isOpen: boolean;
+      editingEvent: Event | null;
+    };
+    create: {
+      isOpen: boolean;
+      forDate: Date | null;
+    };
+  };
+}
+
 const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   onRefresh,
   onEditTask,
   refreshTrigger,
 }) => {
   const router = useRouter();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [loading, setLoading] = useState(true);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForDate, setCreateForDate] = useState<Date | null>(null);
+  const [state, setState] = useState<WeeklyCalendarState>({
+    data: {
+      tasks: [],
+      events: [],
+      currentWeek: new Date(),
+      loading: true,
+    },
+    modals: {
+      taskEdit: {
+        isOpen: false,
+        editingTask: null,
+      },
+      eventEdit: {
+        isOpen: false,
+        editingEvent: null,
+      },
+      create: {
+        isOpen: false,
+        forDate: null,
+      },
+    },
+  });
 
   const handleEditTask = (task: Task) => {
     if (onEditTask) {
       onEditTask(task);
     } else {
-      setEditingTask(task);
-      setIsEditModalOpen(true);
+      setState((prev) => ({
+        ...prev,
+        modals: {
+          ...prev.modals,
+          taskEdit: {
+            isOpen: true,
+            editingTask: task,
+          },
+        },
+      }));
     }
   };
 
   const handleCloseEditModal = () => {
-    setIsEditModalOpen(false);
-    setEditingTask(null);
+    setState((prev) => ({
+      ...prev,
+      modals: {
+        ...prev.modals,
+        taskEdit: {
+          isOpen: false,
+          editingTask: null,
+        },
+      },
+    }));
   };
 
   const handleSaveEdit = (updatedTask: Partial<Task>) => {
-    if (!editingTask) return;
+    if (!state.modals.taskEdit.editingTask) return;
 
-    localStorageService.updateTask(editingTask.id, updatedTask);
+    localStorageService.updateTask(state.modals.taskEdit.editingTask.id, updatedTask);
     loadWeekData();
     if (onRefresh) onRefresh();
     handleCloseEditModal();
   };
 
   const handleEditEvent = (event: Event) => {
-    setEditingEvent(event);
-    setIsEditEventModalOpen(true);
+    setState((prev) => ({
+      ...prev,
+      modals: {
+        ...prev.modals,
+        eventEdit: {
+          isOpen: true,
+          editingEvent: event,
+        },
+      },
+    }));
   };
 
   const handleCloseEditEventModal = () => {
-    setIsEditEventModalOpen(false);
-    setEditingEvent(null);
+    setState((prev) => ({
+      ...prev,
+      modals: {
+        ...prev.modals,
+        eventEdit: {
+          isOpen: false,
+          editingEvent: null,
+        },
+      },
+    }));
   };
 
   const handleEventUpdated = () => {
@@ -75,16 +142,34 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     const isPastDate = checkDate.setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
     if (isPastDate) return;
 
-    setCreateForDate(date);
-    setShowCreateModal(true);
+    setState((prev) => ({
+      ...prev,
+      modals: {
+        ...prev.modals,
+        create: {
+          isOpen: true,
+          forDate: date,
+        },
+      },
+    }));
   };
-  const handleCreateTypeSelect = (type: "task" | "event") => {
-    setShowCreateModal(false);
 
-    if (createForDate) {
-      const year = createForDate.getFullYear();
-      const month = String(createForDate.getMonth() + 1).padStart(2, "0");
-      const day = String(createForDate.getDate()).padStart(2, "0");
+  const handleCreateTypeSelect = (type: "task" | "event") => {
+    setState((prev) => ({
+      ...prev,
+      modals: {
+        ...prev.modals,
+        create: {
+          isOpen: false,
+          forDate: null,
+        },
+      },
+    }));
+
+    if (state.modals.create.forDate) {
+      const year = state.modals.create.forDate.getFullYear();
+      const month = String(state.modals.create.forDate.getMonth() + 1).padStart(2, "0");
+      const day = String(state.modals.create.forDate.getDate()).padStart(2, "0");
       const dateParam = `${year}-${month}-${day}`;
 
       if (type === "task") {
@@ -96,8 +181,16 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   };
 
   const handleCloseCreateModal = () => {
-    setShowCreateModal(false);
-    setCreateForDate(null);
+    setState((prev) => ({
+      ...prev,
+      modals: {
+        ...prev.modals,
+        create: {
+          isOpen: false,
+          forDate: null,
+        },
+      },
+    }));
   };
 
   const getStartOfWeek = useCallback((date: Date) => {
@@ -131,22 +224,45 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   };
 
   const loadWeekData = useCallback(async () => {
-    setLoading(true);
+    setState((prev) => ({
+      ...prev,
+      data: {
+        ...prev.data,
+        loading: true,
+      },
+    }));
+
     try {
-      const startOfWeek = getStartOfWeek(currentWeek);
-      const endOfWeek = getEndOfWeek(currentWeek);
+      const startOfWeek = getStartOfWeek(state.data.currentWeek);
+      const endOfWeek = getEndOfWeek(state.data.currentWeek);
 
       const tasksData = localStorageService.getTasksByDateRange(startOfWeek, endOfWeek);
       const eventsData = localStorageService.getEventsByDateRange(startOfWeek, endOfWeek);
 
-      setTasks(tasksData);
-      setEvents(eventsData);
+      setState((prev) => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          tasks: tasksData,
+          events: eventsData,
+          loading: false,
+        },
+      }));
     } catch (error) {
       console.error("Error loading week data:", error);
-    } finally {
-      setLoading(false);
+      setState((prev) => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          loading: false,
+        },
+      }));
     }
-  }, [currentWeek, getStartOfWeek, getEndOfWeek]);
+  }, [getStartOfWeek, getEndOfWeek]);
+
+  useEffect(() => {
+    loadWeekData();
+  }, [state.data.currentWeek]);
 
   useEffect(() => {
     loadWeekData();
@@ -159,17 +275,29 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   }, [refreshTrigger, loadWeekData]);
 
   const navigateWeek = (direction: "prev" | "next") => {
-    const newDate = new Date(currentWeek.getTime());
+    const newDate = new Date(state.data.currentWeek.getTime());
     if (direction === "prev") {
       newDate.setDate(newDate.getDate() - 7);
     } else {
       newDate.setDate(newDate.getDate() + 7);
     }
-    setCurrentWeek(newDate);
+    setState((prev) => ({
+      ...prev,
+      data: {
+        ...prev.data,
+        currentWeek: newDate,
+      },
+    }));
   };
 
   const goToCurrentWeek = () => {
-    setCurrentWeek(new Date());
+    setState((prev) => ({
+      ...prev,
+      data: {
+        ...prev.data,
+        currentWeek: new Date(),
+      },
+    }));
   };
 
   const getItemsForDay = (date: Date) => {
@@ -178,13 +306,13 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const dayTasks = tasks.filter((task) => {
+    const dayTasks = state.data.tasks.filter((task) => {
       if (!task.startTime) return false; // Filtrar tareas de backlog
       const taskDate = new Date(task.startTime);
       return taskDate >= dayStart && taskDate <= dayEnd;
     });
 
-    const dayEvents = events.filter((event) => {
+    const dayEvents = state.data.events.filter((event) => {
       const eventDate = new Date(event.startTime);
       return eventDate >= dayStart && eventDate <= dayEnd;
     });
@@ -200,9 +328,9 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
     });
   };
 
-  const weekDays = getWeekDays(getStartOfWeek(currentWeek));
+  const weekDays = getWeekDays(getStartOfWeek(state.data.currentWeek));
 
-  if (loading) {
+  if (state.data.loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -230,12 +358,12 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
         </button>
 
         <div className="flex flex-col items-center gap-3">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Semana del {getStartOfWeek(currentWeek).toLocaleDateString("es-ES")}
+          <h2 className="text-2xl font-medium text-gray-800">
+            Semana del {getStartOfWeek(state.data.currentWeek).toLocaleDateString("es-ES")}
           </h2>
           <button
             onClick={goToCurrentWeek}
-            className="px-3 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+            className="px-2 py-1 text-xs font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
           >
             Hoy
           </button>
@@ -270,7 +398,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <div
                   className={`text-center flex-1 ${
-                    isToday ? "text-blue-600 font-bold" : "text-gray-700"
+                    isToday ? "text-blue-600 font-medium" : "text-gray-700"
                   }`}
                 >
                   <div className="text-xs capitalize">{formatDate(day)}</div>
@@ -319,7 +447,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       </div>
 
       {/* Modal de edición */}
-      {isEditModalOpen && editingTask && (
+      {state.modals.taskEdit.isOpen && state.modals.taskEdit.editingTask && (
         <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={(e) => {
@@ -330,7 +458,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
         >
           <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <EditTaskModal
-              task={editingTask}
+              task={state.modals.taskEdit.editingTask}
               onSave={handleSaveEdit}
               onClose={handleCloseEditModal}
             />
@@ -339,17 +467,17 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
       )}
 
       {/* Modal de edición de eventos */}
-      {isEditEventModalOpen && editingEvent && (
+      {state.modals.eventEdit.isOpen && state.modals.eventEdit.editingEvent && (
         <EditEventModal
-          event={editingEvent}
-          isOpen={isEditEventModalOpen}
+          event={state.modals.eventEdit.editingEvent}
+          isOpen={state.modals.eventEdit.isOpen}
           onClose={handleCloseEditEventModal}
           onEventUpdated={handleEventUpdated}
         />
       )}
 
       {/* Modal de selección de tipo para crear */}
-      {showCreateModal && createForDate && (
+      {state.modals.create.isOpen && state.modals.create.forDate && (
         <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={(e) => {
@@ -359,12 +487,12 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
           }}
         >
           <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+            <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">
               ¿Qué quieres agregar?
             </h3>
             <p className="text-sm text-gray-600 mb-6 text-center">
               Para el{" "}
-              {createForDate.toLocaleDateString("es-ES", {
+              {state.modals.create.forDate.toLocaleDateString("es-ES", {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
@@ -494,13 +622,30 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
         </div>
 
         <div className="flex items-center">
-          <input
-            type="checkbox"
-            checked={completed}
-            onChange={(e) => setCompleted(e.target.checked)}
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <label className="ml-2 block text-sm text-gray-700">Marcar como completada</label>
+          <label className="flex items-center cursor-pointer group">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={completed}
+                onChange={(e) => setCompleted(e.target.checked)}
+                className="sr-only"
+              />
+              <div
+                className={`w-4 h-4 rounded-sm border transition-all duration-150 ${
+                  completed
+                    ? "bg-gray-800 border-gray-800"
+                    : "bg-white border-gray-400 group-hover:border-gray-600"
+                }`}
+              >
+                {completed && (
+                  <div className="w-2 h-2 bg-white rounded-sm absolute top-1 left-1"></div>
+                )}
+              </div>
+            </div>
+            <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">
+              Marcar como completada
+            </span>
+          </label>
         </div>
 
         {/* Información adicional */}

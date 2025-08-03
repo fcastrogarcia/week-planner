@@ -1,210 +1,129 @@
 "use client";
 
-import React, { useState } from "react";
 import { Task, TaskCategory, TaskPriority } from "@/types";
-import { localStorageService } from "@/services/localStorage";
-import { getDueDateInfo, DueDateStatus } from "@/utils/dateUtils";
-import {
-  BriefcaseIcon,
-  HomeIcon,
-  HeartIcon,
-  BookOpenIcon,
-  UserGroupIcon,
-  DocumentTextIcon,
-  PencilIcon,
-  CalendarDaysIcon,
-} from "@heroicons/react/24/outline";
 
 interface BacklogTaskCardProps {
   task: Task;
-  onUpdate: () => void;
-  onSchedule: (task: Task) => void;
+  onUpdate: (taskId: string) => void;
   onEdit: (task: Task) => void;
+  onSchedule: (task: Task) => void;
 }
 
-const BacklogTaskCard: React.FC<BacklogTaskCardProps> = ({
-  task,
-  onUpdate,
-  onSchedule,
-  onEdit,
-}) => {
-  const [isCompleting, setIsCompleting] = useState(false);
-
-  const getPriorityChipColor = (priority: TaskPriority) => {
+const BacklogTaskCard = ({ task, onUpdate, onEdit, onSchedule }: BacklogTaskCardProps) => {
+  const getPriorityText = (priority: TaskPriority) => {
     switch (priority) {
-      case TaskPriority.URGENT:
-        return "bg-red-500 text-white";
       case TaskPriority.HIGH:
-        return "bg-orange-500 text-white";
+        return { text: "Alta", color: "text-red-600 bg-red-50 border-red-200" };
       case TaskPriority.MEDIUM:
-        return "bg-yellow-500 text-white";
+        return { text: "Media", color: "text-yellow-600 bg-yellow-50 border-yellow-200" };
       case TaskPriority.LOW:
-        return "bg-green-500 text-white";
+        return { text: "Baja", color: "text-green-600 bg-green-50 border-green-200" };
+      case TaskPriority.URGENT:
+        return { text: "Urgente", color: "text-red-700 bg-red-100 border-red-300" };
       default:
-        return "bg-gray-500 text-white";
+        return { text: "Media", color: "text-gray-600 bg-gray-50 border-gray-200" };
     }
   };
 
-  const getCategoryTags = (category: TaskCategory) => {
-    const tags: { label: string; color: string; icon: React.ReactElement }[] = [];
-    const iconClass = "h-3 w-3";
-
+  const getCategoryText = (category: TaskCategory) => {
     switch (category) {
       case TaskCategory.WORK:
-        tags.push({
-          label: "Trabajo",
-          color: "bg-blue-100 text-blue-800",
-          icon: <BriefcaseIcon className={iconClass} />,
-        });
-        break;
+        return "Trabajo";
       case TaskCategory.PERSONAL:
-        tags.push({
-          label: "Personal",
-          color: "bg-purple-100 text-purple-800",
-          icon: <HomeIcon className={iconClass} />,
-        });
-        break;
+        return "Personal";
       case TaskCategory.HEALTH:
-        tags.push({
-          label: "Salud",
-          color: "bg-green-100 text-green-800",
-          icon: <HeartIcon className={iconClass} />,
-        });
-        break;
+        return "Salud";
       case TaskCategory.EDUCATION:
-        tags.push({
-          label: "Educación",
-          color: "bg-yellow-100 text-yellow-800",
-          icon: <BookOpenIcon className={iconClass} />,
-        });
-        break;
+        return "Educación";
       case TaskCategory.SOCIAL:
-        tags.push({
-          label: "Social",
-          color: "bg-pink-100 text-pink-800",
-          icon: <UserGroupIcon className={iconClass} />,
-        });
-        break;
+        return "Social";
       case TaskCategory.OTHER:
-        tags.push({
-          label: "Otro",
-          color: "bg-gray-100 text-gray-800",
-          icon: <DocumentTextIcon className={iconClass} />,
-        });
-        break;
-    }
-
-    return tags;
-  };
-
-  const handleToggleComplete = async () => {
-    if (isCompleting) return;
-
-    setIsCompleting(true);
-    try {
-      localStorageService.updateTask(task.id, { completed: !task.completed });
-      onUpdate();
-    } catch (error) {
-      console.error("Error updating task:", error);
-    } finally {
-      setIsCompleting(false);
+        return "Otros";
+      default:
+        return category;
     }
   };
 
-  const handleEdit = () => {
-    onEdit(task);
+  const handleToggleComplete = () => {
+    onUpdate(task.id);
   };
 
-  const handleSchedule = () => {
-    onSchedule(task);
-  };
-
-  const dueDateInfo = getDueDateInfo(task);
+  const priorityInfo = getPriorityText(task.priority);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3
-              className={`font-medium text-gray-900 ${
-                task.completed ? "line-through text-gray-500" : ""
+    <div className="border-b border-gray-200 py-3 px-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <label className="cursor-pointer">
+            <input
+              type="checkbox"
+              checked={task.completed}
+              onChange={handleToggleComplete}
+              className="sr-only"
+            />
+            <div
+              className={`w-4 h-4 rounded border-2 transition-all duration-200 ${
+                task.completed
+                  ? "bg-slate-500 border-slate-500"
+                  : "bg-white border-gray-300 hover:border-slate-400"
               }`}
             >
-              {task.title}
-            </h3>
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityChipColor(
-                task.priority
-              )}`}
-            >
-              {task.priority}
-            </span>
-          </div>
-
-          {task.description && (
-            <p className={`text-sm text-gray-600 mb-2 ${task.completed ? "line-through" : ""}`}>
-              {task.description}
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-1 mb-2">
-            {getCategoryTags(task.category).map((tag, index) => (
-              <span
-                key={index}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${tag.color}`}
-              >
-                {tag.icon}
-                {tag.label}
-              </span>
-            ))}
-          </div>
-
-          {dueDateInfo.status !== DueDateStatus.NO_DUE_DATE && (
-            <div className="flex items-center gap-1 mb-2">
-              <CalendarDaysIcon className="h-4 w-4 text-gray-500" />
-              <span
-                className={`text-xs ${
-                  dueDateInfo.status === DueDateStatus.OVERDUE
-                    ? "text-red-600 font-medium"
-                    : dueDateInfo.status === DueDateStatus.DUE_SOON
-                    ? "text-orange-600 font-medium"
-                    : "text-gray-600"
-                }`}
-              >
-                {dueDateInfo.message}
-              </span>
+              {task.completed && (
+                <svg
+                  className="w-2.5 h-2.5 text-white absolute"
+                  style={{ marginTop: "1px", marginLeft: "1px" }}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              )}
             </div>
-          )}
+          </label>
+
+          <div className="flex-1 min-w-0">
+            <h4
+              className={`text-sm font-medium truncate cursor-pointer ${
+                task.completed ? "line-through text-gray-400" : "text-gray-700"
+              }`}
+              onClick={handleToggleComplete}
+            >
+              {task.title}
+            </h4>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 ml-2">
-          <button
-            onClick={handleEdit}
-            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-            title="Editar tarea"
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span
+            className={`px-2 py-1 text-xs font-medium rounded-full border ${priorityInfo.color}`}
           >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <input
-            type="checkbox"
-            checked={task.completed}
-            onChange={handleToggleComplete}
-            disabled={isCompleting}
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
-          />
-        </div>
-      </div>
+            {priorityInfo.text}
+          </span>
 
-      <div className="flex gap-2">
-        {!task.completed && (
-          <button
-            onClick={handleSchedule}
-            className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Programar
-          </button>
-        )}
+          <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-50 rounded-full border">
+            {getCategoryText(task.category)}
+          </span>
+
+          <div className="flex gap-1">
+            <button
+              onClick={() => onEdit(task)}
+              className="px-2 py-1 text-xs font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
+            >
+              Editar
+            </button>
+
+            <button
+              onClick={() => onSchedule(task)}
+              className="px-2 py-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded transition-colors"
+            >
+              Agendar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

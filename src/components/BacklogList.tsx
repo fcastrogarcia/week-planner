@@ -97,6 +97,19 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
     onRefresh();
   };
 
+  const handleToggleComplete = (taskId: string) => {
+    const task = state.backlogTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    localStorageService.updateTask(taskId, {
+      completed: !task.completed,
+      updatedAt: new Date(),
+    });
+
+    // Solo recargar las tareas sin llamar onRefresh para mantener el estado del filtro
+    loadBacklogTasks();
+  };
+
   const handleEditTask = (task: Task) => {
     setState((prev) => ({
       ...prev,
@@ -105,9 +118,7 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
         task,
       },
     }));
-    if (onEditTask) {
-      onEditTask(task);
-    }
+    // Removido: if (onEditTask) { onEditTask(task); }
   };
 
   const handleSaveTask = (updatedTask: Partial<Task>) => {
@@ -206,8 +217,25 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
     <>
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Lista de Tareas Pendientes</h3>
-          <span className="text-sm text-gray-500">{filteredAndSortedTasks.length} tareas</span>
+          <h3 className="text-lg font-medium text-gray-800">Lista de Tareas Pendientes</h3>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() =>
+                setState((prev) => ({
+                  ...prev,
+                  filters: { ...prev.filters, showCompleted: !prev.filters.showCompleted },
+                }))
+              }
+              className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                state.filters.showCompleted
+                  ? "text-blue-700 bg-blue-50 hover:bg-blue-100"
+                  : "text-gray-600 bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              {state.filters.showCompleted ? "Ocultar completadas" : "Mostrar completadas"}
+            </button>
+            <span className="text-sm text-gray-500">{filteredAndSortedTasks.length} tareas</span>
+          </div>
         </div>
 
         {filteredAndSortedTasks.length === 0 ? (
@@ -216,12 +244,12 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
             <p className="text-xs mt-1">Las tareas sin fecha aparecerán aquí</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[60vh] overflow-y-auto">
             {filteredAndSortedTasks.map((task) => (
               <BacklogTaskCard
                 key={task.id}
                 task={task}
-                onUpdate={handleTaskUpdate}
+                onUpdate={handleToggleComplete}
                 onSchedule={handleScheduleTask}
                 onEdit={handleEditTask}
               />
@@ -250,7 +278,7 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
           }}
         >
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">
               Programar: {state.schedule.task.title}
             </h3>
 
@@ -319,13 +347,13 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
                     },
                   }))
                 }
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="flex-1 px-2 py-1 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors border border-gray-200"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmSchedule}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="flex-1 px-2 py-1 text-xs font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors border border-blue-200"
               >
                 Programar
               </button>
@@ -336,20 +364,35 @@ const BacklogList: React.FC<BacklogListProps> = ({ onRefresh, onEditTask }) => {
 
       {/* Modal de edición */}
       {state.edit.isModalOpen && state.edit.task && (
-        <EditBacklogTaskModal
-          task={state.edit.task}
-          onSave={handleSaveTask}
-          onDelete={handleDeleteTask}
-          onClose={() =>
-            setState((prev) => ({
-              ...prev,
-              edit: {
-                isModalOpen: false,
-                task: null,
-              },
-            }))
-          }
-        />
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setState((prev) => ({
+                ...prev,
+                edit: {
+                  isModalOpen: false,
+                  task: null,
+                },
+              }));
+            }
+          }}
+        >
+          <EditBacklogTaskModal
+            task={state.edit.task}
+            onSave={handleSaveTask}
+            onDelete={handleDeleteTask}
+            onClose={() =>
+              setState((prev) => ({
+                ...prev,
+                edit: {
+                  isModalOpen: false,
+                  task: null,
+                },
+              }))
+            }
+          />
+        </div>
       )}
     </>
   );
